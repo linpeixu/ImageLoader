@@ -5,7 +5,7 @@ Android快速集成图片加载（支持更换图片加载库）
 先看接入步骤：
 Step 1. Add the JitPack repository to your build file
 Add it in your root build.gradle at the end of repositories:
-```java
+```kotlin
     allprojects {
 		repositories {
 			...
@@ -14,10 +14,9 @@ Add it in your root build.gradle at the end of repositories:
 	}
 ```
 Step 2. Add the dependency
-```java
+```kotlin
     dependencies {
-	        implementation 'com.github.linpeixu:ImageLoader:1.0.1'
-            //或者implementation 'com.gitlab.linpeixu:imageloader:1.0.1'
+	        implementation 'com.gitlab.linpeixu:imageloader:kt-1.0.2'
 	}
 ```
 
@@ -50,43 +49,34 @@ Step 2. Add the dependency
 能不能有一种方法，能快速响应类似这种需求的变化，或者说如果下次又需要更换图片加载库的时候怎么办。终于到我们本篇文章的主题了。以下我分享下个人的写法
 ##### 4.1 图片加载工具类
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 14:07
- * Email : 1966353889@qq.com
- * Describe:图片加载工具类（单例）
+ * 描述: 图片加载工具类（单例）
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public final class ImageLoader {
-    /*由于instance = new Singleton()，这并非是一个原子操作，事实上在 JVM 中这句话大概做了下面 3 件事情。
-    1.给 instance 分配内存
-    2.调用 Singleton 的构造函数来初始化成员变量
-    3.将instance对象指向分配的内存空间（执行完这步instance就为非null了）
-    但是在 JVM 的即时编译器中存在指令重排序的优化。也就是说上面的第二步和第三步的顺序是不能保证的，最终的执行顺序可能是 1-2-3 也可能是 1-3-2。如果是后者，则在 3 执行完毕、2 未执行之前，被线程二抢占了，这时 instance 已经是非 null 了（但却没有初始化），所以线程二会直接返回 instance，然后使用，然后顺理成章地报错。
-    我们只需要将 instance 变量声明成 volatile 就可以了。*/
-    private static volatile ImageLoader mInstance;
-    private BaseImageLoaderStrategy mStrategy;
+class ImageLoaderKt private constructor() {
+    val version = "1.0.1"
+    val describe = "ImageLoader 1.0.1 by kotlin"
+    private var mStrategy: BaseImageLoaderStrategyKt? = null
 
-    private ImageLoader() {
+    init {
         /*初始化时设置图片加载策略为Glide*/
-        setImageLoaderStrategy(new GlideImageLoaderStrategy());
+        setImageLoaderStrategy(GlideImageLoaderStrategyKt())
     }
 
-    public static ImageLoader getInstance() {
-        if (mInstance == null) {
-            synchronized (ImageLoader.class) {
-                if (mInstance == null) {
-                    mInstance = new ImageLoader();
-                }
-            }
+    companion object {
+        private val mInstance: ImageLoaderKt by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+            ImageLoaderKt()
         }
-        return mInstance;
+
+        fun get(): ImageLoaderKt {
+            return mInstance
+        }
     }
 
-    /**
-     * 设置图片加载策略（根据使用的图片加载框架实现对应的BaseImageLoaderStrategy并在这里设置）
-     */
-    private void setImageLoaderStrategy(BaseImageLoaderStrategy strategy) {
-        mStrategy = strategy;
+    private fun setImageLoaderStrategy(strategy: BaseImageLoaderStrategyKt) {
+        mStrategy = strategy
     }
 
     /**
@@ -97,11 +87,16 @@ public final class ImageLoader {
      * @param view        图片宿主
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View> void load(Context context, LoadAddress url, V view, int... placeholder) {
+    fun <Source, Target> load(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.load(context, url, view, placeholder);
+            mStrategy!!.load(context, url, view, *placeholder)
         }
     }
 
@@ -114,11 +109,17 @@ public final class ImageLoader {
      * @param listener    加载监听
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View, L> void load(Context context, LoadAddress url, V view, ImageLoaderCallback<L> listener, int... placeholder) {
+    fun <Source, Target> load(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.load(context, url, view, listener, placeholder);
+            mStrategy!!.load(context, url, view, listener, *placeholder)
         }
     }
 
@@ -130,11 +131,16 @@ public final class ImageLoader {
      * @param view        图片宿主
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <V extends View, LoadAddress> void circle(Context context, LoadAddress url, V view, int... placeholder) {
+    fun <Source, Target> circle(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.circle(context, url, view, placeholder);
+            mStrategy!!.circle(context, url, view, *placeholder)
         }
     }
 
@@ -147,14 +153,19 @@ public final class ImageLoader {
      * @param listener    加载监听
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View, L> void circle(Context context, LoadAddress url, V view, ImageLoaderCallback<L> listener, int... placeholder) {
+    fun <Source, Target> circle(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.circle(context, url, view, listener, placeholder);
+            mStrategy!!.circle(context, url, view, listener, *placeholder)
         }
     }
-
 
     /**
      * 加载图片（圆角）
@@ -165,11 +176,17 @@ public final class ImageLoader {
      * @param radius      圆角半径
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View> void round(Context context, LoadAddress url, V view, float radius, int... placeholder) {
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        radius: Float,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.round(context, url, view, radius, placeholder);
+            mStrategy!!.round(context, url, view, radius, *placeholder)
         }
     }
 
@@ -183,11 +200,18 @@ public final class ImageLoader {
      * @param listener    加载监听
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View, L> void round(Context context, LoadAddress url, V view, float radius, ImageLoaderCallback<L> listener, int... placeholder) {
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        radius: Float,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.round(context, url, view, radius, listener, placeholder);
+            mStrategy!!.round(context, url, view, radius, listener, *placeholder)
         }
     }
 
@@ -200,11 +224,17 @@ public final class ImageLoader {
      * @param radius      左上角圆角半径，右上角圆角半径，左下角圆角半径，右下角圆角半径
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View> void round(Context context, LoadAddress url, V view, float[] radius, int... placeholder) {
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        radius: FloatArray?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.round(context, url, view, radius, placeholder);
+            mStrategy!!.round(context, url, view, radius, *placeholder)
         }
     }
 
@@ -218,50 +248,57 @@ public final class ImageLoader {
      * @param listener    加载监听
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    public <LoadAddress, V extends View, L> void round(Context context, LoadAddress url, V view, float[] radius, ImageLoaderCallback<L> listener, int... placeholder) {
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target?,
+        radius: FloatArray?,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            mStrategy.round(context, url, view, radius, listener, placeholder);
+            mStrategy!!.round(context, url, view, radius, listener, *placeholder)
         }
     }
 
-    public void clear(Context context, @NonNull View view) {
+    fun clear(context: Context?, view: View) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            if (mStrategy instanceof GlideImageLoaderStrategy) {
-                ((GlideImageLoaderStrategy) mStrategy).clear(context, view);
+            if (mStrategy is GlideImageLoaderStrategyKt) {
+                (mStrategy as GlideImageLoaderStrategyKt).clear(context, view)
             }
         }
     }
 
-    public void pauseRequests(Context context) {
+    fun pauseRequests(context: Context?) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            if (mStrategy instanceof GlideImageLoaderStrategy) {
-                ((GlideImageLoaderStrategy) mStrategy).pauseRequests(context);
+            if (mStrategy is GlideImageLoaderStrategyKt) {
+                (mStrategy as GlideImageLoaderStrategyKt).pauseRequests(context)
             }
         }
     }
 
-    public void pauseAllRequests(Context context) {
+    fun pauseAllRequests(context: Context?) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            if (mStrategy instanceof GlideImageLoaderStrategy) {
-                ((GlideImageLoaderStrategy) mStrategy).pauseAllRequests(context);
+            if (mStrategy is GlideImageLoaderStrategyKt) {
+                (mStrategy as GlideImageLoaderStrategyKt).pauseAllRequests(context)
             }
         }
     }
 
-    public void resumeRequests(Context context) {
+    fun resumeRequests(context: Context?) {
         if (mStrategy == null) {
-            throw new NullPointerException("you should invoke setImageLoaderStrategy first");
+            throw NullPointerException("you should invoke setImageLoaderStrategy first")
         } else {
-            if (mStrategy instanceof GlideImageLoaderStrategy) {
-                ((GlideImageLoaderStrategy) mStrategy).resumeRequests(context);
+            if (mStrategy is GlideImageLoaderStrategyKt) {
+                (mStrategy as GlideImageLoaderStrategyKt).resumeRequests(context)
             }
         }
     }
@@ -269,13 +306,13 @@ public final class ImageLoader {
 ```
 ##### 4.2 图片加载策略
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 14:07
- * Email : 1966353889@qq.com
- * Describe:图片加载策略
+ * 描述: 图片加载策略
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public interface BaseImageLoaderStrategy<V extends View, L> {
+interface BaseImageLoaderStrategyKt {
 
     /**
      * 加载图片
@@ -284,7 +321,12 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param url     图片地址
      * @param view    不同的图片加载框架要设置的视图可能不一样，如Glide为ImageView而Fresco则为SimpleDraweeView
      */
-    <LoadAddress> void load(Context context, LoadAddress url, V view, int... placeholder);
+    fun <Source, Target> load(
+        context: Context?,
+        url: Source,
+        view: Target,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片
@@ -294,7 +336,21 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param view     不同的图片加载框架要设置的视图可能不一样，如Glide为ImageView而Fresco则为SimpleDraweeView
      * @param listener 加载监听
      */
-    <LoadAddress> void load(Context context, LoadAddress url, V view, ImageLoaderCallback<L> listener, int... placeholder);
+    fun <Source, Target> load(
+        context: Context?,
+        url: Source,
+        view: Target,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    )
+
+    fun <Source> loadImageBitmap(
+        context: Context?,
+        url: Source,
+        maxWidth: Int,
+        maxHeight: Int,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+    )
 
     /**
      * 加载图片（圆形）
@@ -303,7 +359,12 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param url     图片加载地址
      * @param view    不同的图片加载框架要设置的视图可能不一样，如Glide为ImageView而Fresco则为SimpleDraweeView
      */
-    <LoadAddress> void circle(Context context, LoadAddress url, V view, int... placeholder);
+    fun <Source, Target> circle(
+        context: Context?,
+        url: Source,
+        view: Target,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片（圆形）
@@ -313,7 +374,13 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param view     不同的图片加载框架要设置的视图可能不一样，如Glide为ImageView而Fresco则为SimpleDraweeView
      * @param listener 加载监听
      */
-    <LoadAddress> void circle(Context context, LoadAddress url, V view, ImageLoaderCallback<L> listener, int... placeholder);
+    fun <Source, Target> circle(
+        context: Context?,
+        url: Source,
+        view: Target,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片（圆角）
@@ -323,7 +390,13 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param view    不同的图片加载框架要设置的视图可能不一样，如Glide为ImageView而Fresco则为SimpleDraweeView
      * @param radius  圆角半径
      */
-    <LoadAddress> void round(Context context, LoadAddress url, V view, float radius, int... placeholder);
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target,
+        radius: Float,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片（圆角）
@@ -334,7 +407,14 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param radius   圆角半径
      * @param listener 加载监听
      */
-    <LoadAddress> void round(Context context, LoadAddress url, V view, float radius, ImageLoaderCallback<L> listener, int... placeholder);
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target,
+        radius: Float,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片（圆角）
@@ -345,7 +425,13 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param radius      左上角圆角半径，右上角圆角半径，左下角圆角半径，右下角圆角半径
      * @param placeholder 占位图（加载时或加载错误占位图），可选参数，第一个元素代表加载时占位图，第二个元素代表加载错误占位图
      */
-    <LoadAddress> void round(Context context, LoadAddress url, V view, float[] radius, int... placeholder);
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target,
+        radius: FloatArray?,
+        vararg placeholder: Int,
+    )
 
     /**
      * 加载图片（圆角）
@@ -356,298 +442,531 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      * @param radius   左上角圆角半径，右上角圆角半径，左下角圆角半径，右下角圆角半径
      * @param listener 加载监听
      */
-    <LoadAddress> void round(Context context, LoadAddress url, V view, float[] radius, ImageLoaderCallback<L> listener, int... placeholder);
+    fun <Source, Target> round(
+        context: Context?,
+        url: Source,
+        view: Target,
+        radius: FloatArray?,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    )
 
     /**
      * 是否为支持的加载类型（不同图片加载框架支持的加载类型可能不一样，在具体的实现类中实现逻辑）
      */
-    <LoadAddress> boolean supportLoad(LoadAddress url);
+    fun <Source> supportLoad(url: Source): Boolean
+
+    /**
+     * 是否为支持的加载类型（不同图片加载框架支持的加载类型可能不一样，在具体的实现类中实现逻辑）
+     */
+    fun <Source, Target> supportLoad(url: Source, view: Target): Boolean
 }
 ```
 ##### 4.3 Glide图片加载策略
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 14:07
- * Email : 1966353889@qq.com
- * Describe:Glide图片加载策略
+ * 描述: Glide图片加载策略
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public class GlideImageLoaderStrategy implements BaseImageLoaderStrategy<ImageView, ImageResult> {
-
-    @Override
-    public <LoadAddress> void load(Context context, LoadAddress url, ImageView view, int... placeholder) {
-        if (supportLoad(url)) {
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                RequestOptions options = new RequestOptions().placeholder(placeholder[0]);
-                if (placeholder.length == 2) options.error(placeholder[1]);
-                Glide.with(context).load(url).apply(options).dontAnimate().into(view);
+class GlideImageLoaderStrategyKt : BaseImageLoaderStrategyKt {
+    override fun <Source, TargetView> load(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
+            if (placeholder.size in 1..2) {
+                val options = if (placeholder.size == 2) {
+                    RequestOptions().placeholder(placeholder[0]).error(placeholder[1])
+                } else {
+                    RequestOptions().placeholder(placeholder[0])
+                }
+                Glide.with(context!!).load(url).apply(options).dontAnimate().into(view as ImageView)
             } else {
-                Glide.with(context).load(url).dontAnimate().into(view);
+                Glide.with(context!!).load(url).dontAnimate().into(view as ImageView)
             }
-
         }
     }
 
-    @Override
-    public <LoadAddress> void load(Context context, LoadAddress url, ImageView view, final ImageLoaderCallback<ImageResult> listener, int... placeholder) {
-        if (supportLoad(url)) {
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                RequestOptions options = new RequestOptions().placeholder(placeholder[0]);
-                if (placeholder.length == 2) options.error(placeholder[1]);
-                Glide.with(context).load(url).apply(options).addListener(listener == null ? null : new RequestListener<Drawable>() {
-                    @Override
-                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                        listener.onFailure();
-                        return false;
-                    }
+    override fun <Source, TargetView> load(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
+            if (placeholder.size in 1..2) {
+                val options = if (placeholder.size == 2) {
+                    RequestOptions().placeholder(placeholder[0]).error(placeholder[1])
+                } else {
+                    RequestOptions().placeholder(placeholder[0])
+                }
+                Glide.with(context!!).load(url).apply(options)
+                    .addListener(if (listener == null) null else object :
+                        RequestListener<Drawable?> {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any,
+                            target: Target<Drawable?>,
+                            isFirstResource: Boolean,
+                        ): Boolean {
+                            listener.onFailure()
+                            return false
+                        }
 
-                    @Override
-                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                        listener.onSuccess();
-                        return false;
-                    }
-                }).dontAnimate().into(view);
+                        override fun onResourceReady(
+                            resource: Drawable?,
+                            model: Any,
+                            target: Target<Drawable?>,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean,
+                        ): Boolean {
+                            listener.onSuccess()
+                            return false
+                        }
+                    }).dontAnimate().into(view as ImageView)
             } else {
-                Glide.with(context).load(url).addListener(listener == null ? null : new RequestListener<Drawable>() {
-                    @Override
-                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                        listener.onFailure();
-                        return false;
+                Glide.with(context!!).load(url).addListener(if (listener == null) null else object :
+                    RequestListener<Drawable?> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onFailure()
+                        return false
                     }
 
-                    @Override
-                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                        listener.onSuccess();
-                        return false;
+                    override fun onResourceReady(
+                        resource: Drawable?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        dataSource: DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onSuccess()
+                        return false
                     }
-                }).dontAnimate().into(view);
+                }).dontAnimate().into(view as ImageView)
             }
-
         }
     }
 
-    @Override
-    public <LoadAddress> void circle(Context context, LoadAddress url, ImageView view, int... placeholder) {
+    override fun <Source> loadImageBitmap(
+        context: Context?,
+        url: Source,
+        maxWidth: Int,
+        maxHeight: Int,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+    ) {
         if (supportLoad(url)) {
+            Glide.with(context!!)
+                .asBitmap()
+                .override(maxWidth, maxHeight)
+                .load(url)
+                .into(object : CustomTarget<Bitmap?>() {
+                    override fun onResourceReady(
+                        resource: Bitmap,
+                        transition: Transition<in Bitmap?>?,
+                    ) {
+                        listener?.onSuccess(ImageResultKt(resource))
+                    }
+
+                    override fun onLoadFailed(errorDrawable: Drawable?) {
+                        listener?.onFailure(ImageResultKt(null))
+                    }
+
+                    override fun onLoadCleared(placeholder: Drawable?) {}
+
+                })
+        }
+    }
+
+    override fun <Source, TargetView> circle(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
             /*占位图进行圆形处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(RequestOptions.circleCropTransform());
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(RequestOptions.circleCropTransform());
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(RequestOptions.circleCropTransform())
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(RequestOptions.circleCropTransform())
             }
-            Glide.with(context).load(url).apply(RequestOptions.circleCropTransform()).thumbnail(load).error(error).dontAnimate().into(view);
+            Glide.with(context!!).load(url).apply(RequestOptions.circleCropTransform())
+                .thumbnail(load).error(error).dontAnimate().into(view as ImageView)
         }
     }
 
-    @Override
-    public <LoadAddress> void circle(Context context, LoadAddress url, ImageView view, final ImageLoaderCallback<ImageResult> listener, int... placeholder) {
-        if (supportLoad(url)) {
+    override fun <Source, TargetView> circle(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
             /*占位图进行圆形处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(RequestOptions.circleCropTransform());
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(RequestOptions.circleCropTransform());
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(RequestOptions.circleCropTransform())
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(RequestOptions.circleCropTransform())
             }
-            Glide.with(context).load(url).apply(RequestOptions.circleCropTransform()).thumbnail(load).error(error).dontAnimate().addListener(listener == null ? null : new RequestListener<Drawable>() {
-                @Override
-                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                    listener.onFailure();
-                    return false;
-                }
+            Glide.with(context!!).load(url).apply(RequestOptions.circleCropTransform())
+                .thumbnail(load).error(error).dontAnimate()
+                .addListener(if (listener == null) null else object : RequestListener<Drawable?> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onFailure()
+                        return false
+                    }
 
-                @Override
-                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                    listener.onSuccess();
-                    return false;
-                }
-            }).into(view);
+                    override fun onResourceReady(
+                        resource: Drawable?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        dataSource: DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onSuccess()
+                        return false
+                    }
+                }).into(view as ImageView)
         }
     }
 
-    @Override
-    public <LoadAddress> void round(Context context, LoadAddress url, ImageView view, float radius, int... placeholder) {
-        if (supportLoad(url)) {
+    override fun <Source, TargetView> round(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        radius: Float,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
             /*占位图进行圆角处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType())));
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType())));
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(RequestOptions().transform(GlideRoundTransformKt(radius,
+                        (view as ImageView).scaleType)))
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(RequestOptions().transform(GlideRoundTransformKt(radius,
+                        view.scaleType)))
             }
-            RequestOptions options = new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType()));
-            Glide.with(context).load(url).apply(options).thumbnail(load).error(error).dontAnimate().into(view);
+            val options = RequestOptions().transform(GlideRoundTransformKt(radius,
+                (view as ImageView).scaleType))
+            Glide.with(context!!).load(url).apply(options).thumbnail(load).error(error)
+                .dontAnimate().into(view)
         }
     }
 
-    @Override
-    public <LoadAddress> void round(Context context, LoadAddress url, ImageView view, float radius, final ImageLoaderCallback<ImageResult> listener, int... placeholder) {
-        if (supportLoad(url)) {
+    override fun <Source, TargetView> round(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        radius: Float,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
             /*占位图进行圆角处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType())));
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType())));
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(RequestOptions().transform(GlideRoundTransformKt(radius,
+                        (view as ImageView).scaleType)))
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(RequestOptions().transform(GlideRoundTransformKt(radius,
+                        view.scaleType)))
             }
-            RequestOptions options = new RequestOptions().transform(new GlideRoundTransform(radius, view.getScaleType()));
-            Glide.with(context).load(url).apply(options).thumbnail(load).error(error).addListener(listener == null ? null : new RequestListener<Drawable>() {
-                @Override
-                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                    listener.onFailure();
-                    return false;
-                }
+            val options = RequestOptions().transform(GlideRoundTransformKt(radius,
+                (view as ImageView).scaleType))
+            Glide.with(context!!).load(url).apply(options).thumbnail(load).error(error)
+                .addListener(if (listener == null) null else object : RequestListener<Drawable?> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onFailure()
+                        return false
+                    }
 
-                @Override
-                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                    listener.onSuccess();
-                    return false;
-                }
-            }).dontAnimate().into(view);
+                    override fun onResourceReady(
+                        resource: Drawable?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        dataSource: DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onSuccess()
+                        return false
+                    }
+                }).dontAnimate().into(view)
         }
     }
 
-    @Override
-    public <LoadAddress> void round(Context context, LoadAddress url, ImageView view, float[] radius, int... placeholder) {
-        if (supportLoad(url)) {
-            float leftTop = 0, rightTop = 0, leftBottom = 0, rightBottom = 0;
-            if (radius != null && radius.length == 4) {
-                leftTop = radius[0];
-                rightTop = radius[1];
-                leftBottom = radius[2];
-                rightBottom = radius[3];
+    override fun <Source, TargetView> round(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        radius: FloatArray?,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
+            var leftTop = 0f
+            var rightTop = 0f
+            var leftBottom = 0f
+            var rightBottom = 0f
+            if (radius != null && radius.size == 4) {
+                leftTop = radius[0]
+                rightTop = radius[1]
+                leftBottom = radius[2]
+                rightBottom = radius[3]
             }
             /*占位图进行圆角处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType())));
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType())));
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(
+                        RequestOptions().transform(
+                            GlideRoundTransformKt(
+                                leftTop,
+                                rightTop,
+                                leftBottom,
+                                rightBottom,
+                                (view as ImageView).scaleType
+                            )
+                        )
+                    )
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(
+                        RequestOptions().transform(
+                            GlideRoundTransformKt(
+                                leftTop,
+                                rightTop,
+                                leftBottom,
+                                rightBottom,
+                                view.scaleType
+                            )
+                        )
+                    )
             }
-            RequestOptions options = new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType()));
-            Glide.with(context).load(url).apply(options).thumbnail(load).error(error).dontAnimate().into(view);
+            val options = RequestOptions().transform(
+                GlideRoundTransformKt(
+                    leftTop,
+                    rightTop,
+                    leftBottom,
+                    rightBottom,
+                    (view as ImageView).scaleType
+                )
+            )
+            Glide.with(context!!).load(url).apply(options).thumbnail(load).error(error)
+                .dontAnimate().into(view)
         }
     }
 
-    @Override
-    public <LoadAddress> void round(Context context, LoadAddress url, ImageView view, float[] radius, final ImageLoaderCallback<ImageResult> listener, int... placeholder) {
-        if (supportLoad(url)) {
-            float leftTop = 0, rightTop = 0, leftBottom = 0, rightBottom = 0;
-            if (radius != null && radius.length == 4) {
-                leftTop = radius[0];
-                rightTop = radius[1];
-                leftBottom = radius[2];
-                rightBottom = radius[3];
+    override fun <Source, TargetView> round(
+        context: Context?,
+        url: Source,
+        view: TargetView,
+        radius: FloatArray?,
+        listener: ImageLoaderCallbackKt<ImageResultKt>?,
+        vararg placeholder: Int,
+    ) {
+        if (supportLoad(url, view)) {
+            var leftTop = 0f
+            var rightTop = 0f
+            var leftBottom = 0f
+            var rightBottom = 0f
+            if (radius != null && radius.size == 4) {
+                leftTop = radius[0]
+                rightTop = radius[1]
+                leftBottom = radius[2]
+                rightBottom = radius[3]
             }
             /*占位图进行圆角处理*/
-            RequestBuilder<Drawable> load = null, error = null;
-            if (placeholder != null && placeholder.length > 0 && placeholder.length < 3) {
-                load = Glide.with(context)
-                        .load(placeholder[0]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType())));
-                if (placeholder.length == 2) error = Glide.with(context)
-                        .load(placeholder[1]).dontAnimate()
-                        .apply(new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType())));
+            var load: RequestBuilder<Drawable?>? = null
+            var error: RequestBuilder<Drawable?>? = null
+            if (placeholder.size in 1..2) {
+                load = Glide.with(context!!)
+                    .load(placeholder[0]).dontAnimate()
+                    .apply(
+                        RequestOptions().transform(
+                            GlideRoundTransformKt(
+                                leftTop,
+                                rightTop,
+                                leftBottom,
+                                rightBottom,
+                                (view as ImageView).scaleType
+                            )
+                        )
+                    )
+                if (placeholder.size == 2) error = Glide.with(context)
+                    .load(placeholder[1]).dontAnimate()
+                    .apply(
+                        RequestOptions().transform(
+                            GlideRoundTransformKt(
+                                leftTop,
+                                rightTop,
+                                leftBottom,
+                                rightBottom,
+                                view.scaleType
+                            )
+                        )
+                    )
             }
-            RequestOptions options = new RequestOptions().transform(new GlideRoundTransform(leftTop, rightTop, leftBottom, rightBottom, view.getScaleType()));
-            Glide.with(context).load(url).apply(options).thumbnail(load).error(error).addListener(listener == null ? null : new RequestListener<Drawable>() {
-                @Override
-                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                    listener.onFailure();
-                    return false;
-                }
+            val options = RequestOptions().transform(
+                GlideRoundTransformKt(
+                    leftTop,
+                    rightTop,
+                    leftBottom,
+                    rightBottom,
+                    (view as ImageView).scaleType
+                )
+            )
+            Glide.with(context!!).load(url).apply(options).thumbnail(load).error(error)
+                .addListener(if (listener == null) null else object : RequestListener<Drawable?> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onFailure()
+                        return false
+                    }
 
-                @Override
-                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                    listener.onSuccess();
-                    return false;
-                }
-            }).dontAnimate().into(view);
+                    override fun onResourceReady(
+                        resource: Drawable?,
+                        model: Any,
+                        target: Target<Drawable?>,
+                        dataSource: DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        listener.onSuccess()
+                        return false
+                    }
+                }).dontAnimate().into(view)
         }
     }
 
-    @Override
-    public <LoadAddress> boolean supportLoad(LoadAddress url) {
-        return url instanceof Bitmap || url instanceof Drawable || url instanceof String || url instanceof Uri || url instanceof File || url instanceof Integer || url instanceof byte[];
+    override fun <Source, Target> supportLoad(url: Source, view: Target): Boolean {
+        return view is ImageView && (url is Bitmap || url is Drawable || url is String || url is Uri || url is File || url is Int || url is ByteArray)
     }
 
-    public void clear(Context context, @NonNull View view) {
-        Glide.with(context).clear(view);
+    override fun <Source> supportLoad(url: Source): Boolean {
+        return url is Bitmap || url is Drawable || url is String || url is Uri || url is File || url is Int || url is ByteArray
     }
 
-    public void pauseRequests(Context context) {
-        Glide.with(context).pauseRequests();
+    fun clear(context: Context?, view: View) {
+        Glide.with(context!!).clear(view)
     }
 
-    public void pauseAllRequests(Context context) {
-        Glide.with(context).pauseAllRequests();
+    fun pauseRequests(context: Context?) {
+        Glide.with(context!!).pauseRequests()
     }
 
-    public void resumeRequests(Context context) {
-        Glide.with(context).resumeRequests();
+    fun pauseAllRequests(context: Context?) {
+        Glide.with(context!!).pauseAllRequests()
+    }
+
+    fun resumeRequests(context: Context?) {
+        Glide.with(context!!).resumeRequests()
     }
 }
-
 ```
 ##### 4.4 Glide圆角transform（跟随ImageView的scaleType缩放）
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 14:07
- * Email : 1966353889@qq.com
- * Describe:Glide圆角transform（跟随ImageView的scaleType缩放）
+ * 描述: Glide圆角transform（跟随ImageView的scaleType缩放）
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public class GlideRoundTransform extends BitmapTransformation {
-    private ImageView.ScaleType scaleType;
-    /**
-     * 左上角，右上角，左下角，右下角四个方向圆角半径
-     */
-    private float leftTop, rightTop, leftBottom, rightBottom;
+class GlideRoundTransformKt : BitmapTransformation {
+    private var scaleType: ScaleType? = null
+    private var leftTop = 0f
+    private var rightTop = 0f
+    private var leftBottom = 0f
+    private var rightBottom = 0f
 
-    public GlideRoundTransform(float radius, ImageView.ScaleType scaleType) {
-        leftTop = rightTop = leftBottom = rightBottom = radius;
-        this.scaleType = scaleType;
+    constructor (radius: Float, scaleType: ScaleType?) {
+        rightBottom = radius
+        leftBottom = radius
+        rightTop = radius
+        leftTop = radius
+        this.scaleType = scaleType
     }
 
-    public GlideRoundTransform(float leftTop, float rightTop, float leftBottom, float rightBottom, ImageView.ScaleType scaleType) {
-        this.leftTop = leftTop;
-        this.rightTop = rightTop;
-        this.leftBottom = leftBottom;
-        this.rightBottom = rightBottom;
-        this.scaleType = scaleType;
+    constructor(
+        leftTop: Float,
+        rightTop: Float,
+        leftBottom: Float,
+        rightBottom: Float,
+        scaleType: ScaleType?,
+    ) {
+        this.leftTop = leftTop
+        this.rightTop = rightTop
+        this.leftBottom = leftBottom
+        this.rightBottom = rightBottom
+        this.scaleType = scaleType
     }
 
-    public GlideRoundTransform(float leftTop, float rightTop, float leftBottom, float rightBottom) {
-        this.leftTop = leftTop;
-        this.rightTop = rightTop;
-        this.leftBottom = leftBottom;
-        this.rightBottom = rightBottom;
+    constructor(
+        leftTop: Float,
+        rightTop: Float,
+        leftBottom: Float,
+        rightBottom: Float,
+    ) {
+        this.leftTop = leftTop
+        this.rightTop = rightTop
+        this.leftBottom = leftBottom
+        this.rightBottom = rightBottom
     }
 
-    public GlideRoundTransform radius(float radius) {
-        leftTop = rightTop = leftBottom = rightBottom = radius;
-        return this;
+    fun radius(radius: Float): GlideRoundTransformKt {
+        rightBottom = radius
+        leftBottom = radius
+        rightTop = radius
+        leftTop = radius
+        return this
     }
 
-    public GlideRoundTransform scaleType(ImageView.ScaleType scaleType) {
-        this.scaleType = scaleType;
-        return this;
+    fun scaleType(scaleType: ScaleType?): GlideRoundTransformKt {
+        this.scaleType = scaleType
+        return this
     }
 
     /**
@@ -655,9 +974,9 @@ public class GlideRoundTransform extends BitmapTransformation {
      *
      * @param leftTop 是否在左上角设置圆角
      */
-    public GlideRoundTransform leftTop(float leftTop) {
-        this.leftTop = leftTop;
-        return this;
+    fun leftTop(leftTop: Float): GlideRoundTransformKt {
+        this.leftTop = leftTop
+        return this
     }
 
     /**
@@ -665,9 +984,9 @@ public class GlideRoundTransform extends BitmapTransformation {
      *
      * @param rightTop 是否在右上角设置圆角
      */
-    public GlideRoundTransform rightTop(float rightTop) {
-        this.rightTop = rightTop;
-        return this;
+    fun rightTop(rightTop: Float): GlideRoundTransformKt {
+        this.rightTop = rightTop
+        return this
     }
 
     /**
@@ -675,9 +994,9 @@ public class GlideRoundTransform extends BitmapTransformation {
      *
      * @param leftBottom 是否在左下角设置圆角
      */
-    public GlideRoundTransform leftBottom(float leftBottom) {
-        this.leftBottom = leftBottom;
-        return this;
+    fun leftBottom(leftBottom: Float): GlideRoundTransformKt {
+        this.leftBottom = leftBottom
+        return this
     }
 
     /**
@@ -685,80 +1004,101 @@ public class GlideRoundTransform extends BitmapTransformation {
      *
      * @param rightBottom 是否在右下角设置圆角
      */
-    public GlideRoundTransform rightBottom(float rightBottom) {
-        this.rightBottom = rightBottom;
-        return this;
+    fun rightBottom(rightBottom: Float): GlideRoundTransformKt {
+        this.rightBottom = rightBottom
+        return this
     }
 
-    public static GlideRoundTransform newBuilder() {
-        return new GlideRoundTransform(10, ImageView.ScaleType.CENTER_CROP);
+    fun newBuilder(): GlideRoundTransformKt {
+        return GlideRoundTransformKt(10F, ScaleType.CENTER_CROP)
     }
 
-    @Override
-    protected Bitmap transform(@NonNull BitmapPool pool, @NonNull Bitmap toTransform,
-                               int outWidth, int outHeight) {
+    override fun transform(
+        pool: BitmapPool,
+        toTransform: Bitmap,
+        outWidth: Int,
+        outHeight: Int,
+    ): Bitmap {
+        val bitmap: Bitmap
         if (scaleType != null) {
-            switch (scaleType) {
-                case CENTER_CROP:
-                    toTransform = TransformationUtils.centerCrop(pool, toTransform, outWidth, outHeight);
-                    break;
-                case FIT_CENTER:
-                    toTransform = TransformationUtils.fitCenter(pool, toTransform, outWidth, outHeight);
-                    break;
-                case CENTER_INSIDE:
-                    toTransform = TransformationUtils.centerInside(pool, toTransform, outWidth, outHeight);
-                    break;
+            bitmap = when (scaleType) {
+                ScaleType.CENTER_CROP -> TransformationUtils.centerCrop(pool,
+                    toTransform,
+                    outWidth,
+                    outHeight)
+                ScaleType.FIT_CENTER -> TransformationUtils.fitCenter(pool,
+                    toTransform,
+                    outWidth,
+                    outHeight)
+                ScaleType.CENTER_INSIDE -> TransformationUtils.centerInside(pool,
+                    toTransform,
+                    outWidth,
+                    outHeight)
+                else -> toTransform
             }
+        } else {
+            bitmap = toTransform
         }
-        return TransformationUtils.roundedCorners(pool, toTransform, leftTop, rightTop, rightBottom, leftBottom);
+        return TransformationUtils.roundedCorners(
+            pool,
+            bitmap,
+            leftTop,
+            rightTop,
+            rightBottom,
+            leftBottom
+        )
     }
 
-    @Override
-    public void updateDiskCacheKey(@NonNull MessageDigest messageDigest) {
+    override fun updateDiskCacheKey(messageDigest: MessageDigest) {
 
     }
-
 }
-
 ```
 ##### 4.5 图片加载回调
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 14:07
- * Email : 196635389@qq.com
- * Describe:图片加载回调
+ * 描述: 图片加载回调
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public interface ImageLoaderCallback<T> {
-    void onSuccess(T... result);
-
-    void onFailure(T... result);
-
-    void onCancel(T... result);
+interface ImageLoaderCallbackKt<T> {
+    fun onSuccess(vararg result: T)
+    fun onFailure(vararg result: T)
+    fun onCancel(vararg result: T)
 }
 ```
 
-```java
+```kotlin
 /**
- * 作者：lpx on 2019/10/29 10:50
- * Email : 196635389@qq.com
- * Describe:用于图片加载监听回调传值（可根据图片加载框架的加载回调的参数来设置此类具体包含的属性和方法）
+ * 描述: 用于图片加载监听回调传值（可根据图片加载框架的加载回调的参数来设置此类具体包含的属性和方法）
+ * 联系: 1966353889@qq.com
+ * 日期: 2022/3/26
  */
-public class ImageResult {
-}
+class ImageResultKt constructor(bitmap: Bitmap?) {
+    var bitmap: Bitmap? = null
 
+    init {
+        this.bitmap = bitmap
+    }
+}
 ```
 ##### 4.6 使用
 这样，我们在需要加载图片的地方调用ImageLoader就可以了，如
 
-```java
-ImageLoader.getInstance().load(context,imageUrl,view);
+```kotlin
+ImageLoaderKt.Companion.get().load(context, imageUrl, view);
 ```
-ImageLoader也提供了多种加载图片的方法，注释都写得很清楚，就不展开说明了。
-##### 4.6 更换图片加载库
-如果我们需要更换图片加载库的时候只需要更改ImageLoader即可，即自定义继承BaseImageLoaderStrategy的图片实现策略类，重写各种图片加载的方法，然后在ImageLoader的构造方法调用setImageLoaderStrategy(BaseImageLoaderStrategy strategy)设置图片加载策略就可以了。
+为了兼容从非kotlin版本无感切换到kotlin版本，也可以通过以下方法使用
 
-自定义BaseImageLoaderStrategy可参考上边的GlideImageLoaderStrategy。
+```kotlin
+ImageLoader.getInstance().load(context, imageUrl, view);
+```
+ImageLoaderKt也提供了多种加载图片的方法，注释都写得很清楚，就不展开说明了。
+##### 4.6 更换图片加载库
+如果我们需要更换图片加载库的时候只需要更改ImageLoaderKt即可，即自定义继承BaseImageLoaderStrategyKt的图片实现策略类，重写各种图片加载的方法，然后在ImageLoaderKt的构造方法调用setImageLoaderStrategy(BaseImageLoaderStrategyKt strategy)设置图片加载策略就可以了。
+
+自定义BaseImageLoaderStrategyKt可参考上边的GlideImageLoaderStrategyKt。
 
 ## 结尾
 是不是很方便快捷，希望本文可以帮助到您，也希望各位不吝赐教，提出您在使用中的宝贵意见，谢谢。
