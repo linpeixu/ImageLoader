@@ -16,7 +16,9 @@ import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.transition.Transition;
 
 import java.io.File;
 
@@ -77,6 +79,36 @@ public class GlideImageLoaderStrategy implements BaseImageLoaderStrategy<ImageVi
             }
 
         }
+    }
+
+    @Override
+    public <LoadAddress> void loadImageBitmap(Context context, LoadAddress url, int maxWidth, int maxHeight, ImageLoaderCallback<ImageResult> listener) {
+        Glide.with(context)
+                .asBitmap()
+                .override(maxWidth, maxHeight)
+                .load(url)
+                .into(new CustomTarget<Bitmap>() {
+
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        if (listener != null) {
+                            listener.onSuccess(new ImageResult(resource));
+                        }
+                    }
+
+                    @Override
+                    public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                        if (listener != null) {
+                            listener.onFailure(new ImageResult(null));
+                        }
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                    }
+
+                });
     }
 
     @Override

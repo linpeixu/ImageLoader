@@ -29,6 +29,8 @@ public interface BaseImageLoaderStrategy<V extends View, L> {
      */
     <LoadAddress> void load(Context context, LoadAddress url, V view, ImageLoaderCallback<L> listener, int... placeholder);
 
+    <LoadAddress> void loadImageBitmap(Context context, LoadAddress url, int maxWidth, int maxHeight, ImageLoaderCallback<L> listener);
+
     /**
      * 加载图片（圆形）
      *
